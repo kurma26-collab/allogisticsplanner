@@ -1,0 +1,609 @@
+let currentTripData = null;
+let selectedVehicle = null;
+let selectedVehiclesForComparison = [];
+let filteredVehicles = [...vehicles];
+
+// Toggle edit mode
+function toggleEditMode(fieldId) {
+    const field = document.getElementById(fieldId);
+    const btn = event.target;
+    
+    if (field.readOnly) {
+        field.readOnly = false;
+        field.classList.add('editable-field');
+        btn.textContent = 'Done';
+        btn.classList.add('done');
+        field.focus();
+    } else {
+        field.readOnly = true;
+        field.classList.remove('editable-field');
+        btn.textContent = 'Edit';
+        btn.classList.remove('done');
+        updateSummary();
+    }
+}
+
+// Get unique cities
+function getUniqueCities() {
+    const cities = new Set();
+    tripMaster.forEach(trip => {
+        cities.add(trip.origin);
+        cities.add(trip.destination);
+    });
+    return Array.from(cities).sort();
+}
+
+// Handle origin input
+function handleOriginInput() {
+    const val = document.getElementById('originInput').value.toLowerCase();
+    const suggestions = document.getElementById('originSuggestions');
+    const cities = getUniqueCities();
+    
+    suggestions.innerHTML = '';
+    if (val.length > 0) {
+        const matches = cities.filter(c => c.toLowerCase().includes(val));
+        if (matches.length > 0) {
+            suggestions.style.display = 'block';
+            matches.forEach(city => {
+                const div = document.createElement('div');
+                div.textContent = city;
+                div.style.padding = '8px 12px';
+                div.style.cursor = 'pointer';
+                div.style.borderBottom = '1px solid #e0e0e0';
+                div.onmouseover = () => div.style.background = '#f0f4ff';
+                div.onmouseout = () => div.style.background = 'white';
+                div.onclick = () => {
+                    document.getElementById('originInput').value = city;
+                    suggestions.innerHTML = '';
+                    suggestions.style.display = 'none';
+                    checkAndAutoFill();
+                };
+                suggestions.appendChild(div);
+            });
+        }
+    } else {
+        suggestions.style.display = 'none';
+    }
+}
+
+// Handle destination input
+function handleDestinationInput() {
+    const val = document.getElementById('destinationInput').value.toLowerCase();
+    const suggestions = document.getElementById('destinationSuggestions');
+    const cities = getUniqueCities();
+    
+    suggestions.innerHTML = '';
+    if (val.length > 0) {
+        const matches = cities.filter(c => c.toLowerCase().includes(val));
+        if (matches.length > 0) {
+            suggestions.style.display = 'block';
+            matches.forEach(city => {
+                const div = document.createElement('div');
+                div.textContent = city;
+                div.style.padding = '8px 12px';
+                div.style.cursor = 'pointer';
+                div.style.borderBottom = '1px solid #e0e0e0';
+                div.onmouseover = () => div.style.background = '#f0f4ff';
+                div.onmouseout = () => div.style.background = 'white';
+                div.onclick = () => {
+                    document.getElementById('destinationInput').value = city;
+                    suggestions.innerHTML = '';
+                    suggestions.style.display = 'none';
+                    checkAndAutoFill();
+                };
+                suggestions.appendChild(div);
+            });
+        }
+    } else {
+        suggestions.style.display = 'none';
+    }
+}
+
+// Check and auto-fill
+function checkAndAutoFill() {
+    const origin = document.getElementById('originInput').value;
+    const destination = document.getElementById('destinationInput').value;
+    
+    if (origin && destination) {
+        const trip = tripMaster.find(t => 
+            t.origin.toLowerCase() === origin.toLowerCase() && 
+            t.destination.toLowerCase() === destination.toLowerCase()
+        );
+        
+        if (trip) {
+            document.getElementById('distanceInput').value = trip.distance_km;
+            document.getElementById('travelDaysInput').value = trip.travel_days;
+            document.getElementById('tollCostInput').value = trip.toll_cost;
+            updateSummary();
+            document.getElementById('nextBtn1').disabled = false;
+        } else {
+            document.getElementById('nextBtn1').disabled = true;
+        }
+    }
+}
+
+// Update summary
+function updateSummary() {
+    const origin = document.getElementById('originInput').value;
+    const destination = document.getElementById('destinationInput').value;
+    const distance = document.getElementById('distanceInput').value;
+    const days = document.getElementById('travelDaysInput').value;
+    const toll = document.getElementById('tollCostInput').value;
+    
+    if (distance && days) {
+        document.getElementById('nextBtn1').disabled = false;
+    }
+    
+    document.getElementById('tripSummary').textContent = 
+        `${origin || '?'} → ${destination || '?'} | ${distance || 0} km | ${days || 0} day(s) | ₹${toll || 0} toll`;
+}
+
+// Clear auto-fill fields
+function clearAutoFillFields() {
+    document.getElementById('originInput').value = '';
+    document.getElementById('destinationInput').value = '';
+    document.getElementById('distanceInput').value = '';
+    document.getElementById('travelDaysInput').value = '';
+    document.getElementById('tollCostInput').value = '';
+    document.getElementById('tripSummary').textContent = 'Enter origin and destination...';
+    document.getElementById('nextBtn1').disabled = true;
+}
+
+// Validate form
+function validateForm() {
+    return document.getElementById('distanceInput').value &&
+           document.getElementById('travelDaysInput').value;
+}
+
+// Reset form
+function resetForm() {
+    clearAutoFillFields();
+}
+
+// Proceed to fleet selection
+function proceedToFleetSelection() {
+    if (!validateForm()) {
+        alert('Please fill all fields');
+        return;
+    }
+    currentTripData = {
+        origin: document.getElementById('originInput').value,
+        destination: document.getElementById('destinationInput').value,
+        distance_km: parseFloat(document.getElementById('distanceInput').value),
+        travel_days: parseInt(document.getElementById('travelDaysInput').value),
+        toll_cost: parseFloat(document.getElementById('tollCostInput').value || 0)
+    };
+    switchStep(2);
+}
+
+// Switch step
+function switchStep(n) {
+    document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+    document.getElementById('step' + n).classList.add('active');
+    
+    const indicator = document.getElementById('stepIndicator');
+    indicator.className = 'step-indicator step-' + n;
+    
+    document.querySelectorAll('.step').forEach((el, idx) => {
+        if (idx < n) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    });
+
+    if (n === 2) {
+        document.getElementById('tripDisplaySummary').textContent = 
+            `${currentTripData.origin} → ${currentTripData.destination}`;
+        document.getElementById('tollCostInput2').value = currentTripData.toll_cost;
+        displayVehicles();
+        displayCategoryFilters();
+    } else if (n === 3) {
+        document.getElementById('tripCostSummary').textContent = 
+            `${currentTripData.origin} → ${currentTripData.destination}`;
+        document.getElementById('vehicleCostSummary').textContent = 
+            `${selectedVehicle.brand} ${selectedVehicle.model}`;
+        document.getElementById('fuelTypeSummary').textContent = selectedVehicle.fuelType.toUpperCase();
+        document.getElementById('mileageSummary').textContent = selectedVehicle.mileage;
+        document.getElementById('tollDisplaySummary').textContent = currentTripData.toll_cost;
+        displayCostBreakdown();
+    } else if (n === 4) {
+        displayComparisonVehicles();
+    } else if (n === 5) {
+        displayReportMessage();
+    }
+}
+
+// Display category filters
+function displayCategoryFilters() {
+    const categories = [...new Set(vehicles.map(v => v.category))];
+    const filter = document.getElementById('categoryFilter');
+    filter.innerHTML = '';
+    
+    const allBtn = document.createElement('button');
+    allBtn.textContent = 'All';
+    allBtn.className = 'category-btn active';
+    allBtn.onclick = () => filterByCategory('All');
+    filter.appendChild(allBtn);
+    
+    categories.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.textContent = cat;
+        btn.className = 'category-btn';
+        btn.onclick = () => filterByCategory(cat);
+        filter.appendChild(btn);
+    });
+}
+
+// Filter by category
+function filterByCategory(category) {
+    document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    if (category === 'All') {
+        filteredVehicles = [...vehicles];
+    } else {
+        filteredVehicles = vehicles.filter(v => v.category === category);
+    }
+    displayVehicles();
+}
+
+// Display vehicles
+function displayVehicles() {
+    const grid = document.getElementById('vehicleGrid');
+    grid.innerHTML = '';
+    
+    filteredVehicles.forEach(v => {
+        const card = document.createElement('div');
+        card.className = 'vehicle-card';
+        card.innerHTML = `<h4>${v.brand} ${v.model}</h4>
+            <div class="vehicle-specs">
+                <p><strong>Category:</strong> ${v.category}</p>
+                <p><strong>Capacity:</strong> ${v.capacity}${v.bodytype === 'Tanker' || v.bodytype === 'Cement' ? ' L' : 'T'}</p>
+                <p><strong>Mileage:</strong> ${v.mileage} km/L</p>
+                <p><strong>Fuel:</strong> ${v.fuelType.toUpperCase()}</p>
+            </div>`;
+        card.onclick = () => selectVehicle(card, v);
+        grid.appendChild(card);
+    });
+    
+    document.getElementById('vehicleCount').textContent = filteredVehicles.length;
+}
+
+// Select vehicle
+function selectVehicle(cardEl, vehicle) {
+    document.querySelectorAll('#vehicleGrid .vehicle-card').forEach(c => c.classList.remove('selected'));
+    cardEl.classList.add('selected');
+    selectedVehicle = vehicle;
+    document.getElementById('nextBtn2').disabled = false;
+}
+
+// Display comparison vehicles
+function displayComparisonVehicles() {
+    const grid = document.getElementById('comparisonVehicleGrid');
+    grid.innerHTML = '';
+    
+    vehicles.forEach(v => {
+        const card = document.createElement('div');
+        card.className = 'vehicle-card';
+        card.innerHTML = `<h4>${v.brand} ${v.model}</h4>
+            <div class="vehicle-specs">
+                <p><strong>Category:</strong> ${v.category}</p>
+                <p><strong>Capacity:</strong> ${v.capacity}${v.bodytype === 'Tanker' || v.bodytype === 'Cement' ? ' L' : 'T'}</p>
+                <p><strong>Mileage:</strong> ${v.mileage} km/L</p>
+            </div>`;
+        card.onclick = () => toggleComparisonVehicle(card, v);
+        grid.appendChild(card);
+    });
+}
+
+// Toggle comparison vehicle
+function toggleComparisonVehicle(cardEl, vehicle) {
+    if (selectedVehiclesForComparison.find(v => v.id === vehicle.id)) {
+        selectedVehiclesForComparison = selectedVehiclesForComparison.filter(v => v.id !== vehicle.id);
+        cardEl.style.borderColor = '#e0e0e0';
+        cardEl.style.borderWidth = '2px';
+    } else {
+        selectedVehiclesForComparison.push(vehicle);
+        cardEl.style.borderColor = '#ff9800';
+        cardEl.style.borderWidth = '3px';
+    }
+    document.getElementById('selectedCount').textContent = selectedVehiclesForComparison.length;
+}
+
+// Clear comparison selection
+function clearComparisonSelection() {
+    selectedVehiclesForComparison = [];
+    document.querySelectorAll('#comparisonVehicleGrid .vehicle-card').forEach(c => {
+        c.style.borderColor = '#e0e0e0';
+        c.style.borderWidth = '2px';
+    });
+    document.getElementById('selectedCount').textContent = '0';
+}
+
+// Generate comparison table
+function generateComparisonTable() {
+    if (selectedVehiclesForComparison.length < 2) {
+        alert('Please select at least 2 vehicles');
+        return;
+    }
+    
+    let tableHTML = '<table class="comparison-table"><tr><th>Parameter</th>';
+    selectedVehiclesForComparison.forEach(v => {
+        tableHTML += `<th>${v.brand} ${v.model}</th>`;
+    });
+    tableHTML += '</tr>';
+    
+    // Category
+    tableHTML += '<tr><td><strong>Category</strong></td>';
+    selectedVehiclesForComparison.forEach(v => tableHTML += `<td>${v.category}</td>`);
+    tableHTML += '</tr>';
+    
+    // Capacity
+    tableHTML += '<tr><td><strong>Capacity</strong></td>';
+    selectedVehiclesForComparison.forEach(v => tableHTML += `<td>${v.capacity}${v.bodytype === 'Tanker' || v.bodytype === 'Cement' ? ' L' : 'T'}</td>`);
+    tableHTML += '</tr>';
+    
+    // Mileage
+    tableHTML += '<tr><td><strong>Mileage (km/L)</strong></td>';
+    selectedVehiclesForComparison.forEach(v => tableHTML += `<td>${v.mileage}</td>`);
+    tableHTML += '</tr>';
+    
+    // Fuel Type
+    tableHTML += '<tr><td><strong>Fuel Type</strong></td>';
+    selectedVehiclesForComparison.forEach(v => tableHTML += `<td>${v.fuelType.toUpperCase()}</td>`);
+    tableHTML += '</tr>';
+    
+    // Cost per km (fuel)
+    tableHTML += '<tr><td><strong>Cost/km (Fuel)</strong></td>';
+    const fuelPrices = {diesel: 87.67, petrol: 94.77, cng: 77.09};
+    selectedVehiclesForComparison.forEach(v => {
+        const costPerKm = (fuelPrices[v.fuelType] / v.mileage).toFixed(2);
+        tableHTML += `<td>₹${costPerKm}</td>`;
+    });
+    tableHTML += '</tr>';
+    
+    tableHTML += '</table>';
+    
+    document.getElementById('comparisonTable').innerHTML = tableHTML;
+    document.getElementById('comparisonTable').style.display = 'block';
+    document.getElementById('proceedToReportsBtn').disabled = false;
+}
+
+// Display cost breakdown
+function displayCostBreakdown() {
+    const fuelRequired = (currentTripData.distance_km / selectedVehicle.mileage).toFixed(2);
+    const fuelPrices = {diesel: 87.67, petrol: 94.77, cng: 77.09};
+    const fuelPrice = fuelPrices[selectedVehicle.fuelType];
+    const fuelCost = (fuelRequired * fuelPrice).toFixed(2);
+    const totalCost = (parseFloat(fuelCost) + currentTripData.toll_cost).toFixed(2);
+    const costPerKm = (totalCost / currentTripData.distance_km).toFixed(2);
+
+    document.getElementById('fuelPriceSummary').textContent = fuelPrice.toFixed(2);
+
+    const html = `
+        <div class="cost-section">
+            <div class="cost-section-title">⛽ Fuel Costs</div>
+            <div class="cost-row">
+                <span class="cost-row-label">Fuel Required:</span>
+                <span class="cost-row-value">${fuelRequired} L</span>
+            </div>
+            <div class="cost-row">
+                <span class="cost-row-label">Fuel Price (${selectedVehicle.fuelType.toUpperCase()}):</span>
+                <span class="cost-row-value">₹${fuelPrice.toFixed(2)}/L</span>
+            </div>
+            <div class="cost-row">
+                <span class="cost-row-label">Total Fuel Cost:</span>
+                <span class="cost-row-value">₹${fuelCost}</span>
+            </div>
+        </div>
+        <div class="cost-section">
+            <div class="cost-section-title">🛣️ Toll Costs</div>
+            <div class="cost-row">
+                <span class="cost-row-label">Toll Fee:</span>
+                <span class="cost-row-value">₹${currentTripData.toll_cost}</span>
+            </div>
+        </div>
+        <div class="cost-section">
+            <div class="cost-row total">
+                <span class="cost-row-label">TOTAL TRIP COST:</span>
+                <span class="cost-row-value">₹${totalCost}</span>
+            </div>
+            <div class="cost-row">
+                <span class="cost-row-label">Cost per km:</span>
+                <span class="cost-row-value">₹${costPerKm}/km</span>
+            </div>
+        </div>
+    `;
+    document.getElementById('costBreakdown').innerHTML = html;
+}
+
+// Display report message
+function displayReportMessage() {
+    const msg = `✅ Analysis Complete - Ready for Export!<br><br>
+        <strong>Trip:</strong> ${currentTripData.origin} → ${currentTripData.destination}<br>
+        <strong>Distance:</strong> ${currentTripData.distance_km} km<br>
+        <strong>Travel Days:</strong> ${currentTripData.travel_days}<br>
+        <strong>Vehicle:</strong> ${selectedVehicle.brand} ${selectedVehicle.model}<br>
+        <strong>Toll Cost:</strong> ₹${currentTripData.toll_cost}`;
+    document.getElementById('reportMessage').innerHTML = msg;
+    document.getElementById('reportMessage').style.display = 'block';
+}
+
+// Go back functions
+function goBackToStep1() { switchStep(1); }
+function goBackToStep2() { switchStep(2); }
+function goBackToStep3() { switchStep(3); }
+function goBackToStep4() { switchStep(4); }
+
+// Proceed functions
+function proceedToStep3() {
+    if (!selectedVehicle) {
+        alert('Please select a vehicle');
+        return;
+    }
+    switchStep(3);
+}
+
+function proceedToStep4() {
+    switchStep(4);
+}
+
+function proceedToStep5() {
+    switchStep(5);
+}
+
+// Download functions
+function downloadReportTXT() {
+    const fuelRequired = (currentTripData.distance_km / selectedVehicle.mileage).toFixed(2);
+    const fuelPrices = {diesel: 87.67, petrol: 94.77, cng: 77.09};
+    const fuelPrice = fuelPrices[selectedVehicle.fuelType];
+    const fuelCost = (fuelRequired * fuelPrice).toFixed(2);
+    const totalCost = (parseFloat(fuelCost) + currentTripData.toll_cost).toFixed(2);
+    const costPerKm = (totalCost / currentTripData.distance_km).toFixed(2);
+
+    const report = `FLEETCOST PLANNER PRO - TRIP ANALYSIS REPORT
+Generated: ${new Date().toLocaleString()}
+
+TRIP DETAILS
+Origin: ${currentTripData.origin}
+Destination: ${currentTripData.destination}
+Distance: ${currentTripData.distance_km} km
+Travel Days: ${currentTripData.travel_days}
+Toll Cost: ₹${currentTripData.toll_cost}
+
+VEHICLE DETAILS
+Brand: ${selectedVehicle.brand}
+Model: ${selectedVehicle.model}
+Category: ${selectedVehicle.category}
+Capacity: ${selectedVehicle.capacity}
+Mileage: ${selectedVehicle.mileage} km/L
+Fuel Type: ${selectedVehicle.fuelType.toUpperCase()}
+
+COST BREAKDOWN
+Fuel Required: ${fuelRequired} L
+Fuel Price: ₹${fuelPrice.toFixed(2)}/L
+Fuel Cost: ₹${fuelCost}
+Toll Cost: ₹${currentTripData.toll_cost}
+TOTAL TRIP COST: ₹${totalCost}
+Cost per km: ₹${costPerKm}/km
+
+REPORT ID: FCP-${Date.now()}`;
+
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(report));
+    element.setAttribute('download', `FleetCost_Report_${Date.now()}.txt`);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    alert('✅ TXT report downloaded successfully!');
+}
+
+function downloadReportExcel() {
+    const fuelRequired = (currentTripData.distance_km / selectedVehicle.mileage).toFixed(2);
+    const fuelPrices = {diesel: 87.67, petrol: 94.77, cng: 77.09};
+    const fuelPrice = fuelPrices[selectedVehicle.fuelType];
+    const fuelCost = (fuelRequired * fuelPrice).toFixed(2);
+    const totalCost = (parseFloat(fuelCost) + currentTripData.toll_cost).toFixed(2);
+    const costPerKm = (totalCost / currentTripData.distance_km).toFixed(2);
+
+    const csv = `FLEETCOST PLANNER PRO - EXCEL REPORT,${new Date().toLocaleDateString()}
+Trip Analysis Report,${new Date().toLocaleTimeString()}
+
+TRIP DETAILS
+Origin,${currentTripData.origin}
+Destination,${currentTripData.destination}
+Distance km,${currentTripData.distance_km}
+Travel Days,${currentTripData.travel_days}
+
+VEHICLE DETAILS
+Brand,${selectedVehicle.brand}
+Model,${selectedVehicle.model}
+Category,${selectedVehicle.category}
+Capacity,${selectedVehicle.capacity}
+Mileage kmL,${selectedVehicle.mileage}
+Fuel Type,${selectedVehicle.fuelType.toUpperCase()}
+
+COST BREAKDOWN
+Fuel Required L,${fuelRequired}
+Fuel Price per L,${fuelPrice.toFixed(2)}
+Total Fuel Cost,${fuelCost}
+Toll Cost,${currentTripData.toll_cost}
+TOTAL TRIP COST,${totalCost}
+Cost per km,${costPerKm}
+
+REPORT GENERATED,${new Date().toLocaleString()}`;
+
+    const element = document.createElement('a');
+    element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
+    element.setAttribute('download', `FleetCost_Report_${Date.now()}.csv`);
+    element.style.display = 'none';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    alert('✅ Excel report downloaded successfully!');
+}
+
+function downloadReportPDF() {
+    const fuelRequired = (currentTripData.distance_km / selectedVehicle.mileage).toFixed(2);
+    const fuelPrices = {diesel: 87.67, petrol: 94.77, cng: 77.09};
+    const fuelPrice = fuelPrices[selectedVehicle.fuelType];
+    const fuelCost = (fuelRequired * fuelPrice).toFixed(2);
+    const totalCost = (parseFloat(fuelCost) + currentTripData.toll_cost).toFixed(2);
+    const costPerKm = (totalCost / currentTripData.distance_km).toFixed(2);
+
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head><title>FleetCost Report</title>
+<style>body{font-family:Arial;margin:20px;background:#f5f5f5;}h1{color:#667eea;text-align:center;margin-bottom:30px;}h2{color:#333;border-bottom:2px solid #667eea;padding:10px 0;margin-top:30px;}table{width:100%;border-collapse:collapse;margin:20px 0;background:white;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1);}th,td{border:1px solid #e0e0e0;padding:12px;text-align:left;}th{background-color:#667eea;color:white;font-weight:bold;}tr:hover{background-color:#f9f9f9;}.highlight{color:#667eea;font-weight:bold;font-size:1.1em;}.total-row{font-weight:bold;background:#f0f4ff;}.footer{text-align:center;margin-top:40px;color:#999;font-size:0.9em;}</style></head>
+<body><h1>🚛 FleetCost Planner Pro - Trip Analysis Report</h1>
+<p style="text-align:center;color:#666;">Report Generated: ${new Date().toLocaleString()}</p>
+
+<h2>Trip Details</h2>
+<table>
+<tr><td>Origin</td><td>${currentTripData.origin}</td></tr>
+<tr><td>Destination</td><td>${currentTripData.destination}</td></tr>
+<tr><td>Distance</td><td>${currentTripData.distance_km} km</td></tr>
+<tr><td>Travel Days</td><td>${currentTripData.travel_days}</td></tr>
+<tr><td>Toll Cost</td><td>₹${currentTripData.toll_cost}</td></tr>
+</table>
+
+<h2>Vehicle Details</h2>
+<table>
+<tr><td>Brand</td><td>${selectedVehicle.brand}</td></tr>
+<tr><td>Model</td><td>${selectedVehicle.model}</td></tr>
+<tr><td>Category</td><td>${selectedVehicle.category}</td></tr>
+<tr><td>Capacity</td><td>${selectedVehicle.capacity}</td></tr>
+<tr><td>Mileage</td><td>${selectedVehicle.mileage} km/L</td></tr>
+<tr><td>Fuel Type</td><td>${selectedVehicle.fuelType.toUpperCase()}</td></tr>
+</table>
+
+<h2>Cost Analysis</h2>
+<table>
+<tr><td>Fuel Required</td><td>${fuelRequired} L</td></tr>
+<tr><td>Fuel Price</td><td>₹${fuelPrice.toFixed(2)}/L</td></tr>
+<tr><td>Fuel Cost</td><td>₹${fuelCost}</td></tr>
+<tr><td>Toll Cost</td><td>₹${currentTripData.toll_cost}</td></tr>
+<tr class="total-row"><td>TOTAL COST</td><td style="color:#667eea;">₹${totalCost}</td></tr>
+<tr><td>Cost per km</td><td>₹${costPerKm}/km</td></tr>
+</table>
+
+<div class="footer">Report ID: FCP-${Date.now()}<br>Generated on: ${new Date().toLocaleString()}</div>
+</body></html>`;
+
+    const printWindow = window.open('', '', 'width=900,height=700');
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.print();
+}
+
+// Reset
+function resetToStart() {
+    currentTripData = null;
+    selectedVehicle = null;
+    selectedVehiclesForComparison = [];
+    filteredVehicles = [...vehicles];
+    resetForm();
+    switchStep(1);
+}

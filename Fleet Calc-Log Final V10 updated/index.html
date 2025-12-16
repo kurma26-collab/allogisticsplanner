@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FleetCost Planner Pro - Advanced with Fuel Management</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🚚 FleetCost Planner Pro</h1>
+            <p>Advanced Fleet Management with Real-Time Fuel Pricing</p>
+        </header>
+
+        <!-- FUEL PRICE BANNER -->
+        <div class="fuel-price-banner">
+            <div class="fuel-price-item">
+                <span class="fuel-price-label">⛽ Diesel Price</span>
+                <span class="fuel-price-value" id="dieselPriceDisplay">₹87.67/L</span>
+                <button class="fuel-edit-btn" onclick="openFuelPriceModal()">Edit</button>
+            </div>
+            <div class="fuel-price-item">
+                <span class="fuel-price-label">⛽ Petrol Price</span>
+                <span class="fuel-price-value" id="petrolPriceDisplay">₹94.77/L</span>
+                <button class="fuel-edit-btn" onclick="openFuelPriceModal()">Edit</button>
+            </div>
+            <div class="fuel-price-item">
+                <span class="fuel-price-label">⛽ CNG Price</span>
+                <span class="fuel-price-value" id="cngPriceDisplay">₹77.09/Kg</span>
+                <button class="fuel-edit-btn" onclick="openFuelPriceModal()">Edit</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="step-indicator" id="stepIndicator">
+                <div class="step active">
+                    <div class="step-number">1</div>
+                    <div class="step-label">Trip Planning</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-label">Fleet Selection</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-label">Cost Analysis</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-label">Comparison</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-label">Reports</div>
+                </div>
+            </div>
+
+            <!-- STEP 1: TRIP PLANNING -->
+            <div id="step1" class="step-content">
+                <h2>📍 Step 1: Trip Planning</h2>
+
+                <div class="info-box">
+                    ℹ️ Enter your trip details. Distance and travel days will automatically populate based on our route
+                    database.
+                </div>
+
+                <div class="form-section">
+                    <h3>📌 Trip Details</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="originInput">Origin City *</label>
+                            <input type="text" id="originInput" placeholder="e.g., Alwar, Chennai"
+                                onkeyup="handleOriginInput()" autocomplete="off">
+                            <div class="suggestions-dropdown" id="originSuggestions"></div>
+                            <div class="help-text">Type to search</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="destinationInput">Destination City *</label>
+                            <input type="text" id="destinationInput" placeholder="e.g., Chennai, Lucknow"
+                                onkeyup="handleDestinationInput()" autocomplete="off">
+                            <div class="suggestions-dropdown" id="destinationSuggestions"></div>
+                            <div class="help-text">Type to search</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>📊 Route Parameters</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="distanceInput">Distance (km)</label>
+                            <input type="number" id="distanceInput" placeholder="Auto-filled" oninput="validateForm()"
+                                style="background: #ffffff; border-color: #667eea;">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="travelDaysInput">Travel Days</label>
+                            <input type="number" id="travelDaysInput" placeholder="Auto-filled" oninput="validateForm()"
+                                style="background: #ffffff; border-color: #667eea;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summary-box">
+                    <h4>📋 Trip Summary</h4>
+                    <p id="tripSummary">Enter origin and destination...</p>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="resetForm()">Clear Form</button>
+                    <button class="btn btn-primary" id="nextBtn1" onclick="proceedToFleetSelection()" disabled>Next
+                        →</button>
+                </div>
+            </div>
+
+            <!-- STEP 2: FLEET SELECTION -->
+            <div id="step2" class="step-content hidden">
+                <h2>🚛 Step 2: Fleet Selection & Toll Cost</h2>
+
+                <div class="info-box">
+                    ℹ️ Select from 51+ vehicles across 8 categories or create a custom vehicle. Enter toll cost for your
+                    route.
+                </div>
+
+                <div class="trip-summary-display">
+                    <strong>📍 Current Trip:</strong> <span id="tripDisplaySummary"></span>
+                </div>
+
+                <div class="form-section">
+                    <h3>💰 Toll Cost (₹)</h3>
+                    <input type="number" id="tollCostInput" placeholder="Auto-filled from verified route database"
+                        min="0" value="0" oninput="updateTollCost()"
+                        style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95em; border-color: #667eea;">
+                    <div class="help-text">Toll cost is auto-populated from route database but can be edited manually
+                        based on vehicle type.</div>
+                </div>
+
+                <div class="form-section">
+                    <div class="vehicle-section-header">
+                        <h3 style="margin: 0;">🏷️ Vehicle Category Filter</h3>
+                    </div>
+                    <div class="category-filter" id="categoryFilter"></div>
+                </div>
+
+                <div class="form-section">
+                    <div class="vehicle-section-header">
+                        <h3 style="margin: 0;">🚗 Available Vehicles (<span id="vehicleCount">0</span> matching)</h3>
+                        <button class="add-custom-btn" onclick="openCustomVehicleModal()">+ Add Custom Vehicle</button>
+                    </div>
+                    <div class="vehicle-grid" id="vehicleGrid"></div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="goBackToStep1()">← Back</button>
+                    <button class="btn btn-primary" id="nextBtn2" onclick="proceedToStep3()" disabled>Next →</button>
+                </div>
+            </div>
+
+            <!-- STEP 3: COST ANALYSIS -->
+            <div id="step3" class="step-content hidden">
+                <h2>💰 Step 3: Cost Analysis with Detailed Fuel Breakdown</h2>
+
+                <div class="info-box">
+                    ℹ️ Detailed cost breakdown including precise fuel calculations based on mileage and current fuel
+                    prices.
+                </div>
+
+                <div class="trip-summary-display">
+                    <strong>📍 Trip:</strong> <span id="tripCostSummary"></span>
+                    <br>
+                    <strong>🚛 Vehicle:</strong> <span id="vehicleCostSummary"></span>
+                    <br>
+                    <strong>⛽ Fuel Type:</strong> <span id="fuelTypeSummary">Diesel</span> | <strong>Mileage:</strong>
+                    <span id="mileageSummary">0</span> km/L | <strong>Fuel Price:</strong> ₹<span
+                        id="fuelPriceSummary">0</span>/L
+                    <br>
+                    <strong>💵 Toll Cost:</strong> ₹<span id="tollDisplaySummary">0</span>
+                </div>
+
+                <div class="fuel-calculation-box">
+                    <strong>⚙️ Fuel Calculation Formula:</strong><br>
+                    Fuel Required = Distance ÷ Mileage | Fuel Cost/km = Fuel Price ÷ Mileage | Total Fuel Cost = Fuel
+                    Required × Fuel Price
+                </div>
+
+                <div class="form-section">
+                    <h3>📊 Cost Breakdown</h3>
+                    <div class="cost-breakdown" id="costBreakdown"></div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="goBackToStep2()">← Back</button>
+                    <button class="btn btn-primary" onclick="proceedToStep4()">Next: Comparison →</button>
+                </div>
+            </div>
+
+            <!-- STEP 4: COMPARISON -->
+            <div id="step4" class="step-content hidden">
+                <h2>📊 Step 4: Fleet Comparison</h2>
+
+                <div class="info-box">
+                    ℹ️ Click on vehicle cards to select multiple vehicles (min 2). Selected vehicles show orange
+                    borders. Generate comparison table to analyze all metrics side-by-side.
+                </div>
+
+                <div id="comparisonVehicleSelector" style="margin: 20px 0;">
+                    <div class="vehicle-section-header">
+                        <h3 style="margin: 0;">🏷️ Vehicle Category Filter</h3>
+                    </div>
+                    <div class="category-filter" id="comparisonCategoryFilter"></div>
+
+                    <h3 style="color: #667eea; margin-bottom: 15px;">🚗 Select Vehicles to Compare (Selected: <span
+                            id="selectedCount">0</span>/51+)</h3>
+                    <div class="vehicle-grid" id="comparisonVehicleGrid"></div>
+                    <div class="button-group" style="margin-top: 20px;">
+                        <button class="btn btn-secondary" onclick="clearComparisonSelection()">Clear Selection</button>
+                        <button class="btn btn-primary" onclick="generateComparisonTable()" style="width: auto;">📊
+                            Generate Comparison</button>
+                    </div>
+                </div>
+
+                <div id="comparisonContent" style="margin: 20px 0;">
+                    <div id="comparisonMessage" style="display:none;"></div>
+                    <div id="comparisonTable" style="overflow-x: auto; display:none;"></div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="goBackToStep3()">← Back</button>
+                    <button class="btn btn-primary" id="proceedToReportsBtn" onclick="proceedToStep5()" disabled>Next:
+                        Reports →</button>
+                </div>
+            </div>
+
+            <!-- STEP 5: REPORTS -->
+            <div id="step5" class="step-content hidden">
+                <h2>📄 Step 5: Reports & Export</h2>
+
+                <div class="info-box">
+                    ℹ️ Generate and export detailed reports of your fleet analysis with complete fuel cost breakdown.
+                </div>
+
+                <div id="reportContent" style="margin: 20px 0;">
+                    <div class="success-message" id="reportMessage"></div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-secondary" onclick="goBackToStep4()">← Back</button>
+                    <button class="btn btn-primary" onclick="downloadReportTXT()">📥 Download TXT Report</button>
+                    <button class="btn btn-primary" onclick="downloadReportExcel()">📊 Download Excel Report</button>
+                    <button class="btn btn-primary" onclick="downloadReportPDF()">📄 Download PDF Report</button>
+                    <button class="btn btn-primary" onclick="resetToStart()">🔄 Start New Analysis</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FUEL PRICE MODAL -->
+    <div id="fuelPriceModal" class="modal">
+        <div class="modal-content">
+            <h3>⛽ Update Fuel Prices</h3>
+            <div class="modal-form-grid">
+                <div class="modal-form-group">
+                    <label>Diesel Price (₹/L)</label>
+                    <input type="number" id="edit_diesel" step="0.01" value="87.67">
+                </div>
+                <div class="modal-form-group">
+                    <label>Petrol Price (₹/L)</label>
+                    <input type="number" id="edit_petrol" step="0.01" value="94.77">
+                </div>
+                <div class="modal-form-group">
+                    <label>CNG Price (₹/Kg)</label>
+                    <input type="number" id="edit_cng" step="0.01" value="77.09">
+                </div>
+            </div>
+            <div class="help-text" style="margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
+                💡 Current prices are updated as of Dec 10, 2025. Update these values to match your local market rates.
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeFuelPriceModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveFuelPrices()">Update Prices</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT/CREATE CUSTOM VEHICLE MODAL -->
+    <div id="vehicleModal" class="modal">
+        <div class="modal-content">
+            <h3 id="vehicleModalTitle">✏️ Add Custom Vehicle</h3>
+            <div class="modal-form-grid" id="vehicleFormGrid"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeVehicleModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveVehicle()">Save Vehicle</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
